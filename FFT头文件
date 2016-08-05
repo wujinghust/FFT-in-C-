@@ -9,7 +9,7 @@
 
 using namespace std;
 #define PI 3.1415926
-#define MOUNT_OF_DATA  16384    //原始数据个数
+#define MOUNT_OF_DATA  16384    //数据个数
 
 class FFT
 {
