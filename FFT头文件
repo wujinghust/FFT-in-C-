@@ -1,0 +1,172 @@
+#ifndef fft_H
+#define fft_H
+
+
+#include<complex>
+#include<stdio.h>
+#include<stdlib.h>
+#include<iostream>
+
+using namespace std;
+#define PI 3.1415926
+#define MOUNT_OF_DATA  16384    //原始数据个数
+
+class FFT
+{
+public:
+	FFT( const vector<double> data );
+	~FFT();
+	void rev(void); //置换数据
+	void iterative_fft(vector<double>& data);  //进行傅里叶变换
+	//void output( vector<double>& data );
+	void Recon(const vector<double> data);
+	//void swap_fft(struct data X,struct data Y);
+private:
+	struct data
+	{
+		double real;
+		double imag;
+	};
+	struct data  Sample_Data[MOUNT_OF_DATA];  //采样数据
+	//struct data  RevData[N];  //置换数据
+	//int Nfft;     //采样点数
+};
+
+FFT::FFT(const vector<double> data)
+{
+	 //Sample_Data= new complex<double>(sizeof(complex<double>)*n);
+	for (int i = 0; i < MOUNT_OF_DATA; i++)
+	{
+		Sample_Data[i].real=data[i];
+		Sample_Data[i].imag=0.0;
+	}
+	//Nfft=n;
+}
+
+FFT::~FFT()
+{
+
+}
+
+void FFT::rev(void)   //位置转换
+{
+	//struct data tmp_odd[N/2];
+	//struct data tmp_even[N/2];
+	int i, j, a, b, p;
+
+	for (i = 1, p = 0; i < MOUNT_OF_DATA; i *= 2)
+        {
+        p ++;
+        }
+	for (i = 0; i < MOUNT_OF_DATA; i ++)
+        {
+        a = i;
+        b = 0;
+        for (j = 0; j < p; j ++)
+            {
+            b = (b << 1) + (a & 1);    // b = b * 2 + a % 2;
+            a >>= 1;        // a = a / 2;
+            }
+        if ( b > i)
+            {
+				swap (Sample_Data[i], Sample_Data[b]);   //利用C++自带的swap函数
+            }
+		}
+}
+
+void FFT::iterative_fft(vector<double>& data)    //快速傅里叶变换实现
+{
+	/*int step,length;
+	struct data W,Wn,t,u;
+	length=log(Nfft)/log(2);
+	*/
+
+    // 快速傅立叶变换，将复数 x 变换后仍保存在 x 中，xreal, ximag 分别是 x 的实部和虚部
+	double treal, timag, ureal, uimag, arg,wreal [MOUNT_OF_DATA/2],wimag [MOUNT_OF_DATA / 2];
+    int m, k, j, t, index1, index2;
+    rev();
+
+    // 计算 1 的前 n / 2 个 n 次方根的共轭复数 W'j = wreal [j] + i * wimag [j] , j = 0, 1, ... , n / 2 - 1
+    arg = - 2 * PI / MOUNT_OF_DATA;
+    treal = cos (arg);
+    timag = sin (arg);
+    wreal [0] = 1.0;
+    wimag [0] = 0.0;
+    for (j = 1; j <MOUNT_OF_DATA/ 2; j ++)
+        {
+        wreal [j] = wreal [j - 1] * treal - wimag [j - 1] * timag;
+        wimag [j] = wreal [j - 1] * timag + wimag [j - 1] * treal;
+        }
+
+	for (m = 2; m <=MOUNT_OF_DATA; m *= 2)
+        {
+			for (k = 0; k < MOUNT_OF_DATA; k += m)
+            {
+            for (j = 0; j < m / 2; j ++)
+              {
+                index1 = k + j;
+                index2 = index1 + m / 2;
+                t = MOUNT_OF_DATA * j / m;    // 旋转因子 w 的实部在 wreal [] 中的下标为 t
+                treal = wreal [t] * Sample_Data[index2].real - wimag [t] * Sample_Data[index2].imag;
+                timag = wreal [t] * Sample_Data[index2].imag + wimag [t] * Sample_Data[index2].real;
+                ureal = Sample_Data[index1].real;
+                uimag = Sample_Data[index1].imag;
+                Sample_Data[index1].real= ureal + treal;
+                Sample_Data[index1].imag= uimag + timag;
+                Sample_Data[index2].real= ureal - treal;
+                Sample_Data[index2].imag= uimag - timag;
+			  }
+		   }
+	    }
+
+	for (int i =0; i <MOUNT_OF_DATA; i++)
+	{
+		data[i]=2*sqrt(Sample_Data[i].real*Sample_Data[i].real+ Sample_Data[i].imag*Sample_Data[i].imag)/MOUNT_OF_DATA;  //计算幅值等于模值除以N/2，N为采样数据的个数
+	}
+	/*for (int k = 0; k< length+1;k++)
+	{
+		step=pow(2,k);
+		Wn.real=cos(-2*PI/step);
+		Wn.imag=sin(-2*PI/step);
+		for (int j = 0; j < Nfft; j+=step)
+		{
+			W.real=1;
+			W.imag=0.0;	
+			for (int i = 0; i <step/2; i++)
+			{
+				t.real =W.real*RevData[j+i+step/2].real-W.imag*RevData[j+i+step/2].imag;
+				t.imag =W.real*RevData[j+i+step/2].real+W.imag*RevData[j+i+step/2].imag;
+				u=RevData[j+i];
+				RevData[j+i].imag=u.imag+t.imag;
+				RevData[j+i].real=u.real+t.real;
+				RevData[j+i+step/2].imag=u.imag-t.imag;
+				RevData[j+i+step/2].real=u.real-t.real;
+				W.imag=W.real*Wn.real+W.imag*Wn.imag;
+				W.real=W.real*Wn.real-W.imag*Wn.imag;
+			}
+			
+		}
+	}*/
+}
+
+/*void FFT::output( vector<double>& data)    //输出结果到指定数组
+{
+	for (int i =0; i <MOUNT_OF_DATA; i++)
+	{
+		data[i]=2*sqrt(Sample_Data[i].real*Sample_Data[i].real+ Sample_Data[i].imag*Sample_Data[i].imag)/MOUNT_OF_DATA;  //计算幅值等于模值除以N/2，N为采样数据的个数
+		//cout << data[i];
+		//cout << Sample_Data[i].real <<"   " << Sample_Data[i].imag << endl;
+	}
+}*/
+
+void FFT::Recon(const vector<double> data)
+{
+	 //Sample_Data= new complex<double>(sizeof(complex<double>)*n);
+	for (int i = 0; i < MOUNT_OF_DATA; i++)
+	{
+		Sample_Data[i].real=data[i];
+		Sample_Data[i].imag=0.0;
+	}
+	//Nfft=n;
+}
+#endif
